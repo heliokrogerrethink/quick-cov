@@ -6,7 +6,7 @@ A powerful helper to run your coverage reports.
 
 ## Purpose
 
-Tracking coverage reports in big projects are extremely slow. And if you are aiming a crescendely grow of your tracking stats, this process may be annoying. quick-cov provides very useful set of tools to quicken this process up.
+Tracking coverage reports in big projects are extremely slow. And if you are aiming a crescend grow of your tracking stats, this process may be annoying. quick-cov provides very useful set of tools to quicken this process up.
 
 ## Features
 
