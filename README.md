@@ -32,7 +32,7 @@ Or using yarn:
 yarn add global @rethink/quick-cov
 ```
 
-## Using
+## Usage
 
 To perform a quick-cov, just run:
 
