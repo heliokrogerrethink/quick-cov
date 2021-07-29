@@ -18,18 +18,18 @@ Tracking coverage reports in big projects are extremely slow. And if you are aim
 -   Does not support coverage to lines yet.
 -   Requires Jest global installation
 
-## Installing
+## Installing (not implemented yet)
 
 Using npm:
 
 ```bash
-npm install -g quick-cov
+npm install -g @rethink/quick-cov
 ```
 
 Or using yarn:
 
 ```bash
-yarn add global quick-cov
+yarn add global @rethink/quick-cov
 ```
 
 ## Using
