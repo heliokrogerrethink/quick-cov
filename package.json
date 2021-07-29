@@ -1,6 +1,6 @@
 {
     "name": "quick-cov",
-    "version": "1.0.1-beta",
+    "version": "1.0.2-beta",
     "author": "Hélio Kroger <helio.kroger@rethink.dev>",
     "description": "",
     "main": "dist/index.js",
