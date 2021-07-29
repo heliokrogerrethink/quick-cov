@@ -127,18 +127,22 @@ export const performSubsequentRun = async (testFiles: string[]) => {
 
         const { firstRunElapsedTime } = newCache;
 
+        const endDate = new Date();
+
+        elapsedTime = getElapsedSeconds(startDate, endDate);
+
         console.log(
             `quick-cov saved you ${(firstRunElapsedTime - elapsedTime).toFixed(
                 2
             )}s.`
         );
     } else {
+        const endDate = new Date();
+
+        elapsedTime = getElapsedSeconds(startDate, endDate);
+
         console.log('✅ No changes were found. Showing existent results.');
     }
-
-    const endDate = new Date();
-
-    elapsedTime = getElapsedSeconds(startDate, endDate);
 };
 
 const main = async () => {
