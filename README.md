@@ -15,7 +15,7 @@ Tracking coverage reports in big projects are extremely slow. And if you are aim
 
 ## Limitations
 
--   Does not support to coverage to lines yet.
+-   Does not support coverage to lines yet.
 
 ## Installing
 
