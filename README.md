@@ -16,6 +16,7 @@ Tracking coverage reports in big projects are extremely slow. And if you are aim
 ## Limitations
 
 -   Does not support coverage to lines yet.
+-   Requires Jest global installation
 
 ## Installing
 
