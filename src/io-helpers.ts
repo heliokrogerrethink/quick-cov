@@ -6,7 +6,7 @@ const { bold, greenBright, white } = chalk;
 export const showGreetings = () => {
     console.log(`Starting ${bold('quick-cov')}...`);
     console.log(`Developed at ${bold('Rethink Tecnologia')} headquarters.`);
-    console.log(`Join us ~ ${greenBright(bold('rethink.dev/carreiras'))}\n`);
+    console.log(`Join us ~ ${greenBright(bold('rethink.dev/carreiras'))}`);
 };
 
 export const showTable = async (keys: string[], rows: string[][]) => {

@@ -2,102 +2,168 @@
 import 'core-js';
 import 'regenerator-runtime/runtime';
 import chalk from 'chalk';
+import { cloneDeep } from 'lodash';
+import { showGreetings, showTable } from './io-helpers';
 import {
-    writeCacheFile,
+    buildRunnerArgs,
+    getSourceFilesFromTestFile,
+    getTestFiles,
+    spawnRunner,
+} from './runner-helpers';
+import { getFilesChecksums, getUpdatedFilesFromList } from './file-helpers';
+import {
+    cacheFileExists,
+    calculateCoverageResult,
     getChangedFiles,
     getSourceFilesStats,
+    parseCoverageResultToTable,
     readCacheFile,
     readCoverageReport,
-    getTestFilesChecksums,
-    cacheFileExists,
-    parseCoverageResultToTable,
-    calculateCoverageResult,
-    compareSourceFiles,
+    writeCacheFile,
 } from './coverage-helpers';
-import { showGreetings, showTable } from './io-helpers';
-import { buildRunnerArgs, getTestFiles, spawnRunner } from './runner-helpers';
-import { checksum, getFileContent } from './file-helpers';
 
-const { grey, greenBright, bold, yellowBright } = chalk;
+const { grey, bold, yellowBright } = chalk;
 
-export const performFirstRun = (globTestFiles: string[]) => {
+let elapsedTime: number;
+
+export const getElapsedSeconds = (startDate: Date, endDate: Date): number => {
+    const diff: number = Number(endDate) - Number(startDate);
+    return diff / 1000;
+};
+
+export const performFirstRun = (testFiles: string[]) => {
     console.log('Cache file not found. Spawning runner...');
     console.log(`🧪 Running tests with ${grey('jest --coverage')}`);
 
-    spawnRunner('jest', ['--coverage']);
+    const startDate = new Date();
+
+    spawnRunner(buildRunnerArgs([], []));
+
+    const endDate = new Date();
 
     const report = readCoverageReport();
     const stats = getSourceFilesStats(report);
 
+    elapsedTime = getElapsedSeconds(startDate, endDate);
+
     writeCacheFile({
-        testFiles: getTestFilesChecksums(globTestFiles),
+        testFiles: getFilesChecksums(testFiles),
         sourceFiles: stats,
+        firstRunElapsedTime: elapsedTime,
     });
 };
 
-export const performSubsequentRun = (globTestFiles: string[]) => {
+export const performSubsequentRun = async (testFiles: string[]) => {
+    const startDate = new Date();
+
     console.log('🔎 Cache file found. Looking for changes...');
-
     const cacheData = readCacheFile();
-    const changedFiles = getChangedFiles(globTestFiles, cacheData);
-    const { testFiles, sourceFiles } = changedFiles;
 
-    const mergedFiles = [...testFiles, ...sourceFiles];
+    const changedFiles = getChangedFiles(testFiles, cacheData);
+    const allChangedFiles = [
+        ...changedFiles.sourceFiles,
+        ...changedFiles.testFiles,
+    ];
 
-    if (mergedFiles.length) {
-        console.log(bold(yellowBright('Changes found on following files:\n')));
+    if (allChangedFiles.length) {
+        console.log(bold(yellowBright('Changes found on following files:')));
 
-        mergedFiles.forEach((file) => {
-            console.log(`• ${file}\n`);
+        allChangedFiles.forEach((path) => {
+            console.log(`• ${yellowBright(path)}`);
         });
 
-        const args = buildRunnerArgs('jest', changedFiles);
-        console.log(`Running tests with ${grey(`jest ${args.join(' ')}`)}\n`);
-        spawnRunner('jest', args);
+        const args = buildRunnerArgs(
+            changedFiles.testFiles,
+            changedFiles.sourceFiles
+        );
+
+        console.log(`Running tests with ${grey(`jest ${args.join(' ')}`)}`);
+
+        spawnRunner(args);
+
+        console.log(
+            `Doing quick-cov's magic... ${grey(
+                '(this process may take a little while)'
+            )}`
+        );
 
         const report = readCoverageReport();
         const stats = getSourceFilesStats(report);
 
-        // TODO: Find out how to get updated source files by tests
-        cacheData.sourceFiles = compareSourceFiles(
+        const updatedSourceFilesByTestFiles = (
+            await Promise.all(
+                changedFiles.testFiles.map(async (path) => {
+                    return await getSourceFilesFromTestFile(path);
+                })
+            )
+        ).flat();
+
+        const updatedSourceFilesByHash = getUpdatedFilesFromList(
             cacheData.sourceFiles,
-            stats
+            Object.keys(stats)
         );
 
-        cacheData.testFiles = testFiles.reduce((prev, next) => {
+        const updatedSourceFiles = Array.from(
+            new Set([
+                ...updatedSourceFilesByTestFiles,
+                ...updatedSourceFilesByHash,
+            ])
+        );
+
+        const newCache = cloneDeep(cacheData);
+
+        newCache.sourceFiles = updatedSourceFiles.reduce((prev, next) => {
             return {
                 ...prev,
-                [next]: {
-                    hash: checksum(getFileContent(next)),
-                },
+                [next]: stats[next],
             };
-        }, cacheData.testFiles);
+        }, newCache.sourceFiles);
 
-        writeCacheFile(cacheData);
+        newCache.testFiles = getFilesChecksums(testFiles);
 
-        console.log(bold(greenBright('✅ Changes has been saved.\n')));
+        writeCacheFile(newCache);
+
+        console.log('✅ Updates written. Showing results.');
+
+        const { firstRunElapsedTime } = newCache;
+
+        console.log(
+            `quick-cov saved you ${(firstRunElapsedTime - elapsedTime).toFixed(
+                2
+            )}s.`
+        );
     } else {
-        console.log('✅ No changes were found. Showing existent results.\n');
+        console.log('✅ No changes were found. Showing existent results.');
     }
+
+    const endDate = new Date();
+
+    elapsedTime = getElapsedSeconds(startDate, endDate);
 };
 
 const main = async () => {
     showGreetings();
-    const globTestFiles = await getTestFiles('jest');
+    const testFiles = await getTestFiles();
 
     if (cacheFileExists()) {
-        performSubsequentRun(globTestFiles);
+        const staleCache = readCacheFile();
+        const staleResult = calculateCoverageResult(staleCache);
+
+        await performSubsequentRun(testFiles);
+
+        const updatedCache = readCacheFile();
+        const updatedResult = calculateCoverageResult(updatedCache);
+
+        showTable(
+            ['Statements', 'Functions', 'Branches'],
+            parseCoverageResultToTable(updatedResult, staleResult)
+        );
     } else {
-        performFirstRun(globTestFiles);
+        performFirstRun(testFiles);
+        console.log('✅ Cache file written. Subsequents will be faster.');
     }
 
-    const cache = readCacheFile();
-    const result = calculateCoverageResult(cache);
-
-    showTable(
-        ['Statements', 'Functions', 'Branches'],
-        parseCoverageResultToTable(result)
-    );
+    console.log(`✨ Done in ${elapsedTime.toFixed(2)}s.`);
 };
 
 main();

@@ -1,47 +1,41 @@
-export type CoverageTermResult = {
+export type CoverageReportTermResult = {
     [key: string]: number | number[];
 };
 
-export type CoverageReport = {
-    [key: string]: {
-        s: CoverageTermResult;
-        f: CoverageTermResult;
-        b: CoverageTermResult;
-    };
+export type CoverageReportResult = {
+    s: CoverageReportTermResult;
+    f: CoverageReportTermResult;
+    b: CoverageReportTermResult;
 };
 
-export type CoverageTermStats = {
+export type CoverageReport = {
+    [key: string]: CoverageReportResult;
+};
+
+export type FileInfo = {
+    hash: string;
+};
+
+export type QuickCovTermStats = {
     total: number;
     covered: number;
     percentage: number;
 };
 
-export type SourceFileInfo = {
-    s: CoverageTermStats;
-    f: CoverageTermStats;
-    b: CoverageTermStats;
-    hash: string;
+export type QuickCovCoverageStats = {
+    s: QuickCovTermStats;
+    f: QuickCovTermStats;
+    b: QuickCovTermStats;
 };
 
-export type TestFileInfo = Pick<SourceFileInfo, 'hash'>;
+export interface SourceFileInfo extends QuickCovCoverageStats, FileInfo {}
 
-export type CoverageStats = {
+export type QuickCovReport = {
     sourceFiles: {
         [key: string]: SourceFileInfo;
     };
     testFiles: {
-        [key: string]: TestFileInfo;
+        [key: string]: FileInfo;
     };
-};
-
-export type TestRunners = 'jest';
-
-export type JestConfig = {
-    testMatch?: string[];
-    testPathIgnorePatterns?: string[];
-    testRegex?: string | string[];
-};
-
-export type PackageContent = {
-    jest: JestConfig;
+    firstRunElapsedTime: number;
 };
